@@ -1,9 +1,9 @@
 from dataclasses import dataclass
+
 import torch
-from torch import nn
 import torch.distributed as dist
 import torch.nn.functional as F
-from torchmetrics.functional import perplexity
+from torch import nn
 
 from evaluator import Evaluator
 from logger import TensorBoardLogger
@@ -26,7 +26,6 @@ class Trainer:
         self.epoch = 1
     
     def get_loss(self, input_ids, target_ids):
-        L = input_ids.size(1)
         logits = self.model(input_ids)
         loss = F.cross_entropy(logits.view(-1, logits.size(-1)), target_ids.view(-1))
         return loss
@@ -64,7 +63,8 @@ class Trainer:
         if dist.get_rank() == 0:
             return sum(ppl_gather) / len(ppl_gather)
         
-    def fit(self, train_loader, n_steps):        
+    def fit(self, train_loader, n_steps):      
+        self.logger.set_n_steps(n_steps)  
         print(f'Accumulating gradients after {self.grad_accum_interval} substeps')
         
         data_iter = iter(train_loader)
@@ -97,7 +97,7 @@ class Trainer:
                 if step % self.ckp_interval == 0 and dist.get_rank() == 0:
                     save_checkpoint(
                         self.model, self.optimizer, self.scaler,
-                        self.lr_scheduler,step, self.ckp_interval,
+                        self.lr_scheduler, step, self.ckp_interval,
                         self.ckp_retention
                     )
                 dist.barrier()

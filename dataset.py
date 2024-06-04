@@ -1,8 +1,9 @@
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
 from typing import List
-from tokenizers import Tokenizer
+
 import torch
+from tokenizers import Tokenizer
 from torch.utils.data import IterableDataset, DataLoader
 
 

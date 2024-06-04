@@ -1,4 +1,5 @@
 from typing import Optional, Tuple, Union
+
 import torch
 from torch import nn
 from torch.cuda.amp import autocast

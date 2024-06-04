@@ -1,19 +1,8 @@
 from torch.utils.tensorboard import SummaryWriter
-from abc import ABC, abstractmethod
 from tqdm.auto import tqdm
 
 
-class Logger(ABC):
-    @abstractmethod
-    def log(self, **kwargs):
-        pass
-    
-    @abstractmethod
-    def close(self):
-        pass
-    
-
-class TensorBoardLogger(Logger, SummaryWriter):
+class TensorBoardLogger(SummaryWriter):
     def __init__(self, log_dir=None, comment="", purge_step=None, max_queue=10, flush_secs=120, filename_suffix=""):
         SummaryWriter.__init__(self, log_dir, comment, purge_step, max_queue, flush_secs, filename_suffix)
         import logging
@@ -21,6 +10,9 @@ class TensorBoardLogger(Logger, SummaryWriter):
         
         self.global_step = 1
         self.pbar = tqdm()
+    
+    def set_n_steps(self, n_steps):
+        self.pbar.total = n_steps
     
     def log(self, epoch=None, **kwargs):        
         for tag, value in kwargs.items():

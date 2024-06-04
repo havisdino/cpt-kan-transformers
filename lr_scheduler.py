@@ -1,8 +1,8 @@
-from sympy import sec
+import math
+
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LambdaLR
-import math
-        
+
 
 class WarmUpLR(LambdaLR):
     def __init__(

@@ -1,12 +1,13 @@
 import os
-from tokenizers import Tokenizer
+
 import torch
 import torch.distributed as dist
+from tokenizers import Tokenizer
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 from dataset import get_train_loader
-from model import KANGPTLMHeadModel
 from lr_scheduler import WarmUpLR
+from model import KANGPTLMHeadModel
 from trainer import Trainer
 from utils import Config
 
@@ -53,7 +54,6 @@ def main(rank, world_size, config):
 
 if __name__ == '__main__':
     import torch.multiprocessing as mp
-    
     
     config = Config.from_yaml('config.yml')
     world_size = len(config.distributed.device_ids)
