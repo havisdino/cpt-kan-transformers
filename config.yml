@@ -1,0 +1,49 @@
+kangpt:
+    kan_grid_size: 8
+    kan_spline_order: 3
+    vocab_size: 50257
+    max_position_embeddings: 1024
+    hidden_size: 768
+    num_hidden_layers: 12
+    num_attention_heads: 1
+    n_inner: null
+    activation_function: gelu_new
+    resid_pdrop: 0.1
+    embd_pdrop: 0.1
+    attn_pdrop: 0.1
+    layer_norm_epsilon: 0.0001
+    initializer_range: 0.02
+    summary_type: cls_index
+    summary_use_proj: true
+    summary_activation: null
+    summary_proj_to_labels: true
+    summary_first_dropout: 0.1
+    scale_attn_weights: true
+    use_cache: true
+    bos_token_id: 50256
+    eos_token_id: 50256
+    scale_attn_by_inverse_layer_idx: false
+    reorder_and_upcast_attn: false
+
+train:
+    lr:
+        lr_init: 0.0001
+        lr_peak: 0.001
+        lr_min: 0.00003
+        warmup_step: 200
+        decreasing_steepness: 0.02
+    pretrain_path: pretrained/kangpt.pt
+    batch_size: 32
+    n_steps: 10000
+    test_interval: 100
+    checkpoint_interval: 100
+    checkpoint_retention: 5
+
+data:
+    n_tokens: 1024
+    train_paths: [null]
+
+distributed:
+    master_addr: localhost
+    master_port: 1012
+    device_ids: [0, 1, 2, 3, 4, 5, 6, 7, 8]
