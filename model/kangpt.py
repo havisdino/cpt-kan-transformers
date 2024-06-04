@@ -10,14 +10,12 @@ class KANGPTBlock(nn.Module):
     def __init__(self, config, layer_idx=None):
         super().__init__()
         hidden_size = config.hidden_size
-        inner_dim = config.n_inner if config.n_inner is not None else 64
 
         self.ln_1 = nn.LayerNorm(hidden_size, eps=config.layer_norm_epsilon)
         self.attn = GPT2Attention(config=config, layer_idx=layer_idx)
         self.ln_2 = nn.LayerNorm(hidden_size, eps=config.layer_norm_epsilon)
 
-        layers_hidden = [hidden_size, inner_dim, hidden_size]
-        self.kan = KAN(layers_hidden, config.kan_grid_size, config.kan_spline_order)
+        self.kan = KAN(config.kan_layers_hidden, config.kan_grid_size, config.kan_spline_order)
 
     def forward(
         self,
@@ -128,7 +126,7 @@ class KANGPTLMHeadModel(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.transformer = KANGPT(config)
-        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
+        self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
     
     def forward(
         self,

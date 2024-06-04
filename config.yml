@@ -1,6 +1,7 @@
 kangpt:
     kan_grid_size: 8
     kan_spline_order: 3
+    kan_layers_hidden: [768, 32, 32, 768]
     vocab_size: 50257
     max_position_embeddings: 1024
     hidden_size: 768
