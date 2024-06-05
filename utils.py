@@ -31,19 +31,19 @@ def save_checkpoint(model, optimizer, scaler, lr_scheduler, step, ckp_interval, 
         lr_scheduler=lr_scheduler.state_dict()
     )
     
-    dir = './checkpoints'
-    if not os.path.exists(dir):
-        os.makedirs(dir)
+    directory = './checkpoints'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
     
     name = 'kangpt'
     
     file_to_remove = f'{name}_{step - ckp_interval * retention}.pt'
-    path_to_remove = os.path.join(dir, file_to_remove)
+    path_to_remove = os.path.join(directory, file_to_remove)
     if os.path.exists(path_to_remove):
         os.remove(path_to_remove)
     
     file_name = f'{name}_{step}.pt'
-    save_path = os.path.join(dir, file_name)
+    save_path = os.path.join(directory, file_name)
     torch.save(checkpoint, save_path)
 
 

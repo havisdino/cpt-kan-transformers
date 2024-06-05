@@ -30,6 +30,3 @@ class Evaluator:
         
         ppl = sum(ppls) / len(ppls)
         return ppl.item()
-        
-        
-        
