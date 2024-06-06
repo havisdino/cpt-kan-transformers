@@ -48,7 +48,7 @@ def main(rank, world_size, config):
     )
     
     train_loader = get_train_loader(
-        rank, world_size, config.data.train_path,
+        rank, world_size, config.data.train_paths,
         config.data.n_tokens, config.train.batch_size, tokenizer
     )
     

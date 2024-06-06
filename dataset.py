@@ -53,7 +53,7 @@ def collate_fn(batch):
     return inputs, targets
 
 
-def get_train_loader(rank, world_size, train_data_path, n_tokens, batch_size, tokenizer):
-    train_dataset = DistributedJsonlTextDataset(rank, world_size, train_data_path, n_tokens + 1, tokenizer)
+def get_train_loader(rank, world_size, train_data_paths, n_tokens, batch_size, tokenizer):
+    train_dataset = DistributedJsonlTextDataset(rank, world_size, train_data_paths, n_tokens + 1, tokenizer)
     train_loader = DataLoader(train_dataset, batch_size, collate_fn=collate_fn, drop_last=True)
     return train_loader
