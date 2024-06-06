@@ -14,7 +14,7 @@ class Evaluator:
         with torch.autocast('cuda', torch.float16):
             logits = self.model(input_ids)
         ppl = perplexity(logits, target_ids, ignore_index=self.ignore_index)
-        return ppl
+        return ppl.item()
 
     @torch.no_grad()
     def evaluate(self, data_loader):

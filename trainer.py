@@ -59,7 +59,7 @@ class Trainer:
         
         self.model.eval()
         ppl = self.evaluator.get_perplexity(input_ids, target_ids)
-        dist.gather_object(ppl, ppls)
+        dist.all_gather_object(ppl, ppls)
         
         if dist.get_rank() == 0:
             self.gathered_ppl = sum(ppls) / len(ppls)
@@ -71,13 +71,13 @@ class Trainer:
         else:
             batch_losses = None
 
-        dist.gather_object(self.batch_loss, batch_losses)
+        dist.all_gather_object(self.batch_loss, batch_losses)
 
         if dist.get_rank() == 0:
             self.gathered_batch_loss = sum(batch_losses) / len(batch_losses)
         
     def fit(self, train_loader, n_steps):
-        if hasattr(self, 'logger'):
+        if dist.get_rank() == 0:
             self.logger.set_n_steps(n_steps)
             print(f'Accumulating gradients after {self.grad_accum_interval} substeps')
         
@@ -96,9 +96,9 @@ class Trainer:
             input_ids, target_ids = batch
 
             self.train_step(input_ids, target_ids)
-            
+
+            dist.barrier()
             if step % self.grad_accum_interval == 0:
-                dist.barrier()
                 self.accumulate_gradient()
 
                 dist.barrier()
@@ -109,8 +109,7 @@ class Trainer:
                     lr = self.optimizer.param_groups[0]['lr']
                     self.logger.log(self.epoch, train_loss=self.gathered_batch_loss, lr=lr, train_ppl=self.gathered_ppl)
                     print(f'\ttrain_ppl: {self.gathered_ppl}')
-                
-                dist.barrier()
+
                 if step % self.ckp_interval == 0 and dist.get_rank() == 0:
                     save_checkpoint(
                         self.model, self.optimizer, self.scaler,
