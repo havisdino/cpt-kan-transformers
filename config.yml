@@ -37,8 +37,9 @@ train:
     batch_size: 32
     n_steps: 10000
     test_interval: 100
-    checkpoint_interval: 100
-    checkpoint_retention: 5
+    grad_accum_interval: 2
+    ckp_retention: 3
+    ckp_interval: 100
 
 data:
     n_tokens: 1024

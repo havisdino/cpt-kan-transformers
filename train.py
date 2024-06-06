@@ -6,6 +6,7 @@ from tokenizers import Tokenizer
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 from dataset import get_train_loader
+from evaluator import Evaluator
 from lr_scheduler import WarmUpLR
 from model import KANGPTLMHeadModel
 from trainer import Trainer
@@ -36,12 +37,15 @@ def main(rank, world_size, config):
     scaler = torch.cuda.amp.GradScaler()
     lr_scheduler = WarmUpLR(optimizer, **vars(config.train.lr))
     
-    trainer = Trainer(
-        model, optimizer, lr_scheduler, scaler, config.train.grad_accum_interval,
-        config.train.ckp_retention, config.train.ckp_interval
-    )
-    
     tokenizer = Tokenizer.from_pretrained('gpt2')
+
+    trainer = Trainer(
+        model, optimizer, lr_scheduler, scaler,
+        evaluator=Evaluator(model, tokenizer.encode('<|endoftext|>').ids[0]),
+        grad_accum_interval=config.train.grad_accum_interval,
+        ckp_retention=config.train.ckp_retention,
+        ckp_interval=config.train.ckp_interval
+    )
     
     train_loader = get_train_loader(
         rank, world_size, config.data.train_path,
