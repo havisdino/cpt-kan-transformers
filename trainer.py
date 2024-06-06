@@ -22,7 +22,8 @@ class Trainer:
     ckp_interval: int
     
     def __post_init__(self):
-        self.logger = TensorBoardLogger('logs')
+        if dist.get_rank() == 0:
+            self.logger = TensorBoardLogger('logs')
         self.epoch = 1
     
     def get_loss(self, input_ids, target_ids):
@@ -63,8 +64,9 @@ class Trainer:
         if dist.get_rank() == 0:
             return sum(ppl_gather) / len(ppl_gather)
         
-    def fit(self, train_loader, n_steps):      
-        self.logger.set_n_steps(n_steps)  
+    def fit(self, train_loader, n_steps):
+        if hasattr(self, 'logger'):
+            self.logger.set_n_steps(n_steps)
         print(f'Accumulating gradients after {self.grad_accum_interval} substeps')
         
         data_iter = iter(train_loader)
