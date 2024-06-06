@@ -53,21 +53,33 @@ class Trainer:
     @torch.no_grad()
     def evaluate(self, input_ids, target_ids):
         if dist.get_rank() == 0:
-            ppl_gather = [None for _ in range(dist.get_world_size())]
+            ppls = [None for _ in range(dist.get_world_size())]
         else:
-            ppl_gather = None
+            ppls = None
         
         self.model.eval()
         ppl = self.evaluator.get_perplexity(input_ids, target_ids)
-        dist.gather_object(ppl, ppl_gather)
+        dist.gather_object(ppl, ppls)
         
         if dist.get_rank() == 0:
-            return sum(ppl_gather) / len(ppl_gather)
+            self.gathered_ppl = sum(ppls) / len(ppls)
+
+    @torch.no_grad()
+    def _gather_batch_loss(self):
+        if dist.get_rank() == 0:
+            batch_losses = [None for _ in range(dist.get_world_size())]
+        else:
+            batch_losses = None
+
+        dist.gather_object(self.batch_loss, batch_losses)
+
+        if dist.get_rank() == 0:
+            self.gathered_batch_loss = sum(batch_losses) / len(batch_losses)
         
     def fit(self, train_loader, n_steps):
         if hasattr(self, 'logger'):
             self.logger.set_n_steps(n_steps)
-        print(f'Accumulating gradients after {self.grad_accum_interval} substeps')
+            print(f'Accumulating gradients after {self.grad_accum_interval} substeps')
         
         data_iter = iter(train_loader)
         self.optimizer.zero_grad()
@@ -89,11 +101,13 @@ class Trainer:
                 self.accumulate_gradient()
 
                 dist.barrier()
+                self.evaluate(input_ids, target_ids)
+                self._gather_batch_loss()
+
                 if dist.get_rank() == 0:
                     lr = self.optimizer.param_groups[0]['lr']
-                    ppl = self.evaluate(input_ids, target_ids)
-                    self.logger.log(self.epoch, train_loss=self.batch_loss, lr=lr, train_ppl=ppl)
-                    print(f'\ttrain_ppl: {ppl}')
+                    self.logger.log(self.epoch, train_loss=self.gathered_batch_loss, lr=lr, train_ppl=self.gathered_ppl)
+                    print(f'\ttrain_ppl: {self.gathered_ppl}')
                 
                 dist.barrier()
                 if step % self.ckp_interval == 0 and dist.get_rank() == 0:
