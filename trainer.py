@@ -98,6 +98,7 @@ class Trainer:
             self.train_step(input_ids, target_ids)
             
             if step % self.grad_accum_interval == 0:
+                dist.barrier()
                 self.accumulate_gradient()
 
                 dist.barrier()

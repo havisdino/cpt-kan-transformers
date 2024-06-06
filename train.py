@@ -37,7 +37,7 @@ def main(rank, world_size, config):
     scaler = torch.cuda.amp.GradScaler()
     lr_scheduler = WarmUpLR(optimizer, **vars(config.train.lr))
     
-    tokenizer = Tokenizer.from_pretrained('gpt2')
+    tokenizer = Tokenizer.from_file('pretrained/tokenizer.json')
 
     trainer = Trainer(
         model, optimizer, lr_scheduler, scaler,
