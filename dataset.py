@@ -48,7 +48,7 @@ class DistributedJsonlTextDataset(IterableDataset):
 
 def collate_fn(batch):    
     inputs = torch.tensor(batch, dtype=torch.int32)
-    targets = inputs[:, 1:]
+    targets = inputs[:, 1:].to(torch.long)
     inputs = inputs[:, :-1]
     return inputs, targets
 

@@ -97,8 +97,9 @@ class KANGPT(nn.Module):
         
         causal_mask = self._create_causal_mask(config.max_position_embeddings)
         self.register_buffer('causal_mask', causal_mask, persistent=False)
-    
-    def _create_causal_mask(self, maxlen):
+
+    @staticmethod
+    def _create_causal_mask(maxlen):
         causal_mask = torch.ones(maxlen, maxlen).tril() == 0
         causal_mask = torch.where(causal_mask, -float('inf'), 0)
         return causal_mask
@@ -117,7 +118,6 @@ class KANGPT(nn.Module):
         for block in self.h:
             outputs = block(hidden_states, attention_mask=causal_mask)
             hidden_states = outputs[0]
-
  
         last_hidden_states = self.ln_f(hidden_states)
         return last_hidden_states
@@ -129,11 +129,7 @@ class KANGPTLMHeadModel(nn.Module):
         self.transformer = KANGPT(config)
         self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
     
-    def forward(
-        self,
-        input_ids: Optional[torch.LongTensor],
-        attention_mask: Optional[torch.FloatTensor]
-    ):
-        outputs = self.transformer(input_ids, attention_mask)
+    def forward(self, input_ids: Optional[torch.LongTensor]):
+        outputs = self.transformer(input_ids)
         logits = self.lm_head(outputs)
         return logits
