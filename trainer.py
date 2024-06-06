@@ -4,8 +4,8 @@ import torch
 import torch.distributed as dist
 import torch.nn.functional as F
 from torch import nn
+from torchmetrics.functional.text.perplexity import perplexity
 
-from evaluator import Evaluator
 from logger import TensorBoardLogger
 from utils import save_checkpoint
 
@@ -16,7 +16,6 @@ class Trainer:
     optimizer: torch.optim.Optimizer
     lr_scheduler: torch.optim.lr_scheduler.LRScheduler
     scaler: torch.cuda.amp.GradScaler
-    evaluator: Evaluator
     grad_accum_interval: int
     ckp_retention: int
     ckp_interval: int
@@ -29,6 +28,7 @@ class Trainer:
     def get_loss(self, input_ids, target_ids):
         logits = self.model(input_ids)
         loss = F.cross_entropy(logits.view(-1, logits.size(-1)), target_ids.view(-1))
+        self.logits = logits.detach()
         return loss
     
     def train_step(self, input_ids, target_ids):
@@ -49,32 +49,6 @@ class Trainer:
     @property        
     def batch_loss(self):
         return self.loss.detach().item() * self.grad_accum_interval
-    
-    @torch.no_grad()
-    def evaluate(self, input_ids, target_ids):
-        if dist.get_rank() == 0:
-            ppls = [None for _ in range(dist.get_world_size())]
-        else:
-            ppls = None
-        
-        self.model.eval()
-        ppl = self.evaluator.get_perplexity(input_ids, target_ids)
-        dist.all_gather_object(ppl, ppls)
-        
-        if dist.get_rank() == 0:
-            self.gathered_ppl = sum(ppls) / len(ppls)
-
-    @torch.no_grad()
-    def _gather_batch_loss(self):
-        if dist.get_rank() == 0:
-            batch_losses = [None for _ in range(dist.get_world_size())]
-        else:
-            batch_losses = None
-
-        dist.all_gather_object(self.batch_loss, batch_losses)
-
-        if dist.get_rank() == 0:
-            self.gathered_batch_loss = sum(batch_losses) / len(batch_losses)
         
     def fit(self, train_loader, n_steps):
         if dist.get_rank() == 0:
@@ -97,24 +71,17 @@ class Trainer:
 
             self.train_step(input_ids, target_ids)
 
-            dist.barrier()
             if step % self.grad_accum_interval == 0:
                 self.accumulate_gradient()
 
-                dist.barrier()
-                self.evaluate(input_ids, target_ids)
-                self._gather_batch_loss()
-
                 if dist.get_rank() == 0:
                     lr = self.optimizer.param_groups[0]['lr']
-                    self.logger.log(self.epoch, train_loss=self.gathered_batch_loss, lr=lr, train_ppl=self.gathered_ppl)
-                    print(f'\ttrain_ppl: {self.gathered_ppl}')
+                    ppl = perplexity(self.logits, target_ids).item()
+                    self.logger.log(self.epoch, train_loss=self.batch_loss, lr=lr, train_ppl=ppl)
 
-                if step % self.ckp_interval == 0 and dist.get_rank() == 0:
-                    save_checkpoint(
-                        self.model, self.optimizer, self.scaler,
-                        self.lr_scheduler, step, self.ckp_interval,
-                        self.ckp_retention
-                    )
-                dist.barrier()
-                
+                    if step % self.ckp_interval == 0:
+                        save_checkpoint(
+                            self.model, self.optimizer, self.scaler,
+                            self.lr_scheduler, step, self.ckp_interval,
+                            self.ckp_retention
+                        )
