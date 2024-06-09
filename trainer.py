@@ -77,7 +77,7 @@ class Trainer:
                 if dist.get_rank() == 0:
                     lr = self.optimizer.param_groups[0]['lr']
                     ppl = perplexity(self.logits, target_ids).item()
-                    self.logger.log(self.epoch, train_loss=self.batch_loss, lr=lr, train_ppl=ppl)
+                    self.logger.log(self.epoch, loss=self.batch_loss, lr=lr, ppl=ppl)
 
                     if step % self.ckp_interval == 0:
                         save_checkpoint(
