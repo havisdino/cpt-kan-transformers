@@ -94,29 +94,16 @@ class KANGPT(nn.Module):
         self.drop = nn.Dropout(config.embd_pdrop)
         self.h = nn.ModuleList([KANGPTBlock(config, layer_idx=i) for i in range(config.num_hidden_layers)])
         self.ln_f = nn.LayerNorm(self.embed_dim, eps=config.layer_norm_epsilon)
-        
-        causal_mask = self._create_causal_mask(config.max_position_embeddings)
-        self.register_buffer('causal_mask', causal_mask, persistent=False)
-
-    @staticmethod
-    def _create_causal_mask(maxlen):
-        causal_mask = torch.ones(maxlen, maxlen).tril() == 0
-        causal_mask = torch.where(causal_mask, -float('inf'), 0)
-        return causal_mask
-
-    def _get_causal_mask(self, n_positions):
-        return self.causal_mask[:n_positions, :n_positions]
 
     def forward(self, input_ids: Optional[torch.LongTensor]):        
         inputs_embeds = self.wte(input_ids)
         position_embeds = self.wpe.weight[:input_ids.size(1)]
-        causal_mask = self._get_causal_mask(input_ids.size(1))
         
         hidden_states = inputs_embeds + position_embeds
         hidden_states = self.drop(hidden_states)
         
         for block in self.h:
-            outputs = block(hidden_states, attention_mask=causal_mask)
+            outputs = block(hidden_states, attention_mask=None)
             hidden_states = outputs[0]
  
         last_hidden_states = self.ln_f(hidden_states)
